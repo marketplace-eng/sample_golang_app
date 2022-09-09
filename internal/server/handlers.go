@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"fmt"
@@ -10,8 +10,19 @@ import (
 // DigitalOcean endpoints
 
 func (s *server) provisionHandler(c echo.Context) error {
-	s.e.Logger.Info("Got provision request")
-	return c.String(http.StatusOK, "I'll provision something\n")
+	s.e.Logger.Info("Got provisioning request")
+	req := &ProvisioningRequest{}
+
+	resp, err := provisionAccount(req)
+	// If an error occurs, return 422 with message
+	if err != nil {
+		resp = &ProvisioningResponse{
+			Message: err.Error(),
+		}
+		return c.JSON(http.StatusUnprocessableEntity, resp)
+	}
+
+	return c.JSON(http.StatusOK, resp)
 }
 
 func (s *server) deprovisionHandler(c echo.Context) error {

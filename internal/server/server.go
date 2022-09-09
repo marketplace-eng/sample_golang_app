@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"github.com/labstack/echo/v4"
@@ -13,7 +13,7 @@ type server struct {
 	e *echo.Echo
 }
 
-func main() {
+func StartServer() {
 	e := echo.New()
 	e.Logger.SetLevel(log.INFO)
 
