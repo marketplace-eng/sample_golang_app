@@ -1,7 +1,9 @@
 package server
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -12,8 +14,12 @@ import (
 func (s *server) provisionHandler(c echo.Context) error {
 	s.e.Logger.Info("Got provisioning request")
 	req := &ProvisioningRequest{}
+	err := c.Bind(&req)
+	if err != nil {
+		return c.String(http.StatusBadRequest, "malformed request: "+err.Error())
+	}
 
-	resp, err := provisionAccount(req)
+	resp, err := s.provisionAccount(context.Background(), req)
 	// If an error occurs, return 422 with message
 	if err != nil {
 		resp = &ProvisioningResponse{
@@ -57,4 +63,15 @@ func (s *server) getActivities(c echo.Context) error {
 func (s *server) changeConfig(c echo.Context) error {
 	s.e.Logger.Info("Got config request")
 	return c.String(http.StatusOK, "I'll send config data back to DO\n")
+}
+
+func (s *server) log(req http.Request) string {
+	defer req.Body.Close()
+
+	b, err := io.ReadAll(req.Body)
+	if err != nil {
+		s.e.Logger.Fatal(err)
+	}
+
+	return string(b)
 }

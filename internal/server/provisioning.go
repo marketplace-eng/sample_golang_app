@@ -1,8 +1,14 @@
 package server
 
-import "sample_app/models"
+import (
+	"context"
+	"sample_app/models"
+)
 
 type ProvisioningRequest struct {
+	// A name for the resource that the user provided during the provisioning flow.
+	Name string `json:"resource_name"`
+
 	// User selected app slug as provided by the vendor during vendor registration
 	AppSlug string `json:"app_slug"`
 
@@ -59,33 +65,44 @@ type ProvisioningConfig struct {
 	LicenseKey string `json:"LICENSE_KEY"`
 }
 
-func provisionAccount(req *ProvisioningRequest) (*ProvisioningResponse, error) {
-	acc := createAccount(req)
+const (
+	InsertAccountSQL = `
+	INSERT INTO accounts (name, email, app_slug, plan_slug, resource_uuid, language, email_preference, source, status, license_key) 
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);
+	`
+)
 
-	// database.create(acc)
+func (s *server) provisionAccount(ctx context.Context, req *ProvisioningRequest) (*ProvisioningResponse, error) {
+	licenseKey := newLicenseKey()
+
+	_, err := s.db.Exec(ctx, InsertAccountSQL,
+		req.Name,
+		req.Email,
+		req.AppSlug,
+		req.PlanSlug,
+		req.ResourceUUID,
+		req.Metadata.Language,
+		req.Metadata.EmailPreference,
+		"DigitalOcean",
+		models.Active,
+		licenseKey,
+	)
+
+	if err != nil {
+		s.e.Logger.Error("Unable to create account: " + err.Error())
+		return nil, err
+	}
 
 	resp := &ProvisioningResponse{
-		Id: acc.ResourceUUID,
+		Id: req.ResourceUUID,
 		Config: ProvisioningConfig{
-			LicenseKey: acc.LicenseKey,
+			LicenseKey: licenseKey,
 		},
 		Message: "Account provisioning succeeded!",
 	}
 	return resp, nil
 }
 
-func createAccount(req *ProvisioningRequest) *models.Account {
-	acc := &models.Account{
-		Name:            req.TeamID,
-		Email:           req.Email,
-		AppSlug:         req.AppSlug,
-		PlanSlug:        req.PlanSlug,
-		ResourceUUID:    req.ResourceUUID,
-		Language:        req.Metadata.Language,
-		EmailPreference: req.Metadata.EmailPreference,
-		Source:          "DigitalOcean",
-		Status:          models.Active,
-		LicenseKey:      "",
-	}
-	return acc
+func newLicenseKey() string {
+	return "abc"
 }
