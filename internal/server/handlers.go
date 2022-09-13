@@ -65,7 +65,8 @@ func (s *server) changeConfig(c echo.Context) error {
 	return c.String(http.StatusOK, "I'll send config data back to DO\n")
 }
 
-func (s *server) log(req http.Request) string {
+// for debugging requests
+func (s *server) logBody(req http.Request) string {
 	defer req.Body.Close()
 
 	b, err := io.ReadAll(req.Body)

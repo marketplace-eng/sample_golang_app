@@ -3,6 +3,8 @@ package server
 import (
 	"context"
 	"sample_app/models"
+
+	"github.com/google/uuid"
 )
 
 type ProvisioningRequest struct {
@@ -104,5 +106,5 @@ func (s *server) provisionAccount(ctx context.Context, req *ProvisioningRequest)
 }
 
 func newLicenseKey() string {
-	return "abc"
+	return uuid.New().String()
 }
