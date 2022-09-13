@@ -1,24 +1,29 @@
 package server
 
 import (
+	"context"
+
+	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
 )
 
 const (
-	addr = ":8080"
+	addr = ":8082"
 )
 
 type server struct {
-	e *echo.Echo
+	e  *echo.Echo
+	db *pgxpool.Pool
 }
 
-func StartServer() {
+func StartServer(ctx context.Context, db *pgxpool.Pool) {
 	e := echo.New()
 	e.Logger.SetLevel(log.INFO)
 
 	s := &server{
-		e: e,
+		e:  e,
+		db: db,
 	}
 
 	// DigitalOcean endpoints
