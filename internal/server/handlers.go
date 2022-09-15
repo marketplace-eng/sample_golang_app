@@ -9,6 +9,10 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+type ErrorResponse struct {
+	Message string `json:"message"`
+}
+
 // DigitalOcean endpoints
 
 func (s *server) provisionHandler(c echo.Context) error {
@@ -22,7 +26,7 @@ func (s *server) provisionHandler(c echo.Context) error {
 	resp, err := s.provisionAccount(context.Background(), req)
 	// If an error occurs, return 422 with message
 	if err != nil {
-		resp = &ProvisioningResponse{
+		resp := &ErrorResponse{
 			Message: err.Error(),
 		}
 		return c.JSON(http.StatusUnprocessableEntity, resp)
@@ -32,9 +36,22 @@ func (s *server) provisionHandler(c echo.Context) error {
 }
 
 func (s *server) deprovisionHandler(c echo.Context) error {
-	s.e.Logger.Info("Got deprovision request")
 	uuid := c.Param("resource_uuid")
-	return c.String(http.StatusOK, fmt.Sprintf("I'll deprovision %s\n", uuid))
+	s.e.Logger.Info("Got deprovision request for " + uuid)
+	err := s.deprovisionRequest(context.Background(), uuid)
+	if err != nil {
+		s.e.Logger.Info("Got " + err.Error())
+		_, ok := err.(*NotFoundError)
+		if ok {
+			return c.NoContent(http.StatusNotFound)
+		}
+		resp := &ErrorResponse{
+			Message: err.Error(),
+		}
+		return c.JSON(http.StatusUnprocessableEntity, resp)
+	}
+	s.e.Logger.Info("Success")
+	return c.NoContent(http.StatusOK)
 }
 
 func (s *server) planChangeHandler(c echo.Context) error {
