@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"database/sql"
 	"sample_app/models"
 
 	"github.com/google/uuid"
@@ -68,30 +69,62 @@ type ProvisioningConfig struct {
 }
 
 const (
+	GetAccountSQL = `
+	SELECT id FROM accounts WHERE resource_uuid=$1;
+	`
+
 	InsertAccountSQL = `
 	INSERT INTO accounts (name, email, app_slug, plan_slug, resource_uuid, language, email_preference, source, status, license_key) 
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);
+	`
+
+	UpdateAccountSQL = `
+	UPDATE accounts
+	SET name=$2, email=$3, app_slug=$4, plan_slug=$5, language=$6, email_preference=$7, status=$8, license_key=$9
+	WHERE id=$1;
 	`
 )
 
 func (s *server) provisionAccount(ctx context.Context, req *ProvisioningRequest) (*ProvisioningResponse, error) {
 	licenseKey := newLicenseKey()
+	var id int
 
-	_, err := s.db.Exec(ctx, InsertAccountSQL,
-		req.Name,
-		req.Email,
-		req.AppSlug,
-		req.PlanSlug,
-		req.ResourceUUID,
-		req.Metadata.Language,
-		req.Metadata.EmailPreference,
-		"DigitalOcean",
-		models.Active,
-		licenseKey,
-	)
+	// Check if this account UUID has previously provisioned an account
+	err := s.db.QueryRow(ctx, GetAccountSQL, req.ResourceUUID).Scan(&id)
+	if err == sql.ErrNoRows {
+		// If not, create a new account for them
+		_, err = s.db.Exec(ctx, InsertAccountSQL,
+			req.Name,
+			req.Email,
+			req.AppSlug,
+			req.PlanSlug,
+			req.ResourceUUID,
+			req.Metadata.Language,
+			req.Metadata.EmailPreference,
+			"DigitalOcean",
+			models.Active,
+			licenseKey,
+		)
+	} else if err == nil {
+		// If so, reactivate the existing account
+		_, err = s.db.Exec(ctx, UpdateAccountSQL,
+			id,
+			req.Name,
+			req.Email,
+			req.AppSlug,
+			req.PlanSlug,
+			req.Metadata.Language,
+			req.Metadata.EmailPreference,
+			models.Active,
+			licenseKey,
+		)
+	} else {
+		s.e.Logger.Error("Unable to query for account presence" + err.Error())
+		return nil, err
+	}
 
 	if err != nil {
-		s.e.Logger.Error("Unable to create account: " + err.Error())
+		s.e.Logger.Error("Unable to provision account: " + err.Error())
 		return nil, err
 	}
 

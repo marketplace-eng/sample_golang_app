@@ -23,6 +23,7 @@ CREATE TABLE "accounts" (
     "created_at" timestamptz DEFAULT CURRENT_TIMESTAMP NOT NULL,
     "modified_at" timestamptz DEFAULT CURRENT_TIMESTAMP NOT NULL,
     CONSTRAINT "accounts_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "accounts_resource_uuid" UNIQUE ("resource_uuid")
 ) WITH (oids = false);
 
 DELIMITER ;;
