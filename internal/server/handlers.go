@@ -66,8 +66,26 @@ func (s *server) notificationHandler(c echo.Context) error {
 }
 
 func (s *server) ssoHandler(c echo.Context) error {
-	s.e.Logger.Info("Got sso request")
-	return c.String(http.StatusOK, "This will eventually do the complicated SSO dance\n")
+	s.e.Logger.Info("Got SSO request")
+	req := &SsoRequest{}
+	err := c.Bind(req)
+	if err != nil {
+		return c.String(http.StatusBadRequest, "malformed request: "+err.Error())
+	}
+
+	cookie, err := s.sso(req)
+	if err != nil {
+		_, ok := err.(*UnauthorizedError)
+		if ok {
+			return c.NoContent(http.StatusUnauthorized)
+		} else {
+			return c.String(http.StatusInternalServerError, err.Error())
+		}
+	}
+
+	c.Response().Header().Set("Location", appHomepage)
+	c.SetCookie(cookie)
+	return c.NoContent(http.StatusTemporaryRedirect)
 }
 
 // Vendor app endpoints (subject to change)
