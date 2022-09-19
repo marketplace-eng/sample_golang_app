@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"net/http"
 	"strconv"
 	"time"
 )
@@ -23,24 +22,15 @@ type SsoRequest struct {
 	Id           string `param:"user_id" form:"user_id"`
 }
 
-type UnauthorizedError struct{}
-
-func (e *UnauthorizedError) Error() string {
-	return "Unable to validate token"
-}
-
-func (s *server) sso(req *SsoRequest) (*http.Cookie, error) {
+func (s *server) authorize(req *SsoRequest) (bool, error) {
 	authorized, err := validToken(req.Token, req.Timestamp, req.ResourceUUID)
 	if err != nil {
-		return nil, err
+		return false, err
 	} else if !authorized {
-		return nil, &UnauthorizedError{}
+		return false, nil
 	}
 
-	expiration := time.Now().Add(365 * 24 * time.Hour)
-	//TODO: this probably also needs some sort of auth token cookie
-	cookie := http.Cookie{Name: "uuid", Value: req.ResourceUUID, Expires: expiration}
-	return &cookie, nil
+	return true, nil
 }
 
 func validToken(token string, timestamp string, uuid string) (bool, error) {

@@ -44,5 +44,7 @@ func StartServer(ctx context.Context, db *pgxpool.Pool) {
 
 	e.POST("/config", s.changeConfig)
 
+	e.POST("/authorize", s.authorizeHandler)
+
 	e.Logger.Fatal(e.Start(addr))
 }
