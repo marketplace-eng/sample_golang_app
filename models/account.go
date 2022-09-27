@@ -7,7 +7,6 @@ type Status int64
 const (
 	Active Status = iota
 	Suspended
-	Deprovisioned
 )
 
 type Account struct {
