@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"strconv"
 	"time"
+
+	"github.com/golang-jwt/jwt/v4"
 )
 
 const (
@@ -20,6 +22,39 @@ type SsoRequest struct {
 	Timestamp    string `param:"timestamp" form:"timestamp"`
 	Email        string `param:"user_email" form:"user_email"`
 	Id           string `param:"user_id" form:"user_id"`
+}
+
+func getJWT() (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"iat": time.Now().Unix(),
+		"exp": time.Now().Add(time.Minute * 15).Unix(),
+	})
+
+	// Sign and get the complete encoded token as a string using the secret
+	tokenString, err := token.SignedString(appSalt)
+
+	return tokenString, err
+}
+
+func validateToken(tokenString string) (bool, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+
+		// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
+		return appSalt, nil
+	})
+
+	if err != nil {
+		return false, err
+	}
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		return claims.VerifyExpiresAt(time.Now().Unix(), true), nil
+	} else {
+		return false, nil
+	}
 }
 
 func (s *server) authorize(req *SsoRequest) (bool, error) {

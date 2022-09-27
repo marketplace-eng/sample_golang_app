@@ -67,13 +67,7 @@ func (s *server) notificationHandler(c echo.Context) error {
 
 func (s *server) ssoHandler(c echo.Context) error {
 	s.e.Logger.Info("Got SSO request")
-	c.Response().Header().Set("Location", appHomepage)
-	return c.NoContent(http.StatusTemporaryRedirect)
-}
 
-// Vendor app endpoints (subject to change)
-
-func (s *server) authorizeHandler(c echo.Context) error {
 	req := &SsoRequest{}
 	err := c.Bind(req)
 	if err != nil {
@@ -86,9 +80,30 @@ func (s *server) authorizeHandler(c echo.Context) error {
 	}
 	if !authorized {
 		return c.NoContent(http.StatusUnauthorized)
-	} else {
-		return c.NoContent(http.StatusOK)
 	}
+
+	token, err := getJWT()
+	if err != nil {
+		return c.String(http.StatusInternalServerError, err.Error())
+	}
+	c.Response().Header().Set("Location", appHomepage+"?secret="+token)
+	return c.NoContent(http.StatusTemporaryRedirect)
+}
+
+// Vendor app endpoints (subject to change)
+
+func (s *server) authorizeHandler(c echo.Context) error {
+	token := c.QueryParam("secret")
+	authorized, err := validateToken(token)
+	if err != nil {
+		return c.String(http.StatusInternalServerError, err.Error())
+	}
+
+	if !authorized {
+		return c.NoContent(http.StatusUnauthorized)
+	}
+
+	return c.NoContent(http.StatusOK)
 }
 
 func (s *server) getActivities(c echo.Context) error {
