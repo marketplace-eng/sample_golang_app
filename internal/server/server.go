@@ -2,9 +2,11 @@ package server
 
 import (
 	"context"
+	"crypto/subtle"
 
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
 )
 
@@ -19,6 +21,15 @@ type server struct {
 
 func StartServer(ctx context.Context, db *pgxpool.Pool) {
 	e := echo.New()
+	// DigitalOcean calls your app with basic auth headers, using slug and password set up on app creation
+	e.Use(middleware.BasicAuth(func(username, password string, c echo.Context) (bool, error) {
+		// Uses constant time comparison to prevent timing attacks
+		if subtle.ConstantTimeCompare([]byte(username), []byte(appSlug)) == 1 &&
+			subtle.ConstantTimeCompare([]byte(password), []byte(appPassword)) == 1 {
+			return true, nil
+		}
+		return false, nil
+	}))
 	e.Logger.SetLevel(log.INFO)
 
 	s := &server{

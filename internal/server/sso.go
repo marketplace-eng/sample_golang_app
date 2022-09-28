@@ -11,11 +11,6 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
-const (
-	appSalt     = ""
-	appHomepage = ""
-)
-
 type SsoRequest struct {
 	ResourceUUID string `param:"resource_uuid" form:"resource_uuid"`
 	Token        string `param:"token" form:"token"`
