@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -81,7 +82,20 @@ func (s *server) planChangeHandler(c echo.Context) error {
 
 func (s *server) notificationHandler(c echo.Context) error {
 	s.e.Logger.Info("Got notification request")
-	return c.String(http.StatusOK, "I got a notification!\n")
+	req := &Notification{}
+	err := c.Bind(req)
+	if err != nil {
+		return c.String(http.StatusBadRequest, "malformed request: "+err.Error())
+	}
+
+	errs := s.parseNotification(context.Background(), req)
+	if len(errs) > 0 {
+		resp := &ErrorResponse{
+			Message: fmt.Sprintf("Errors occurred: %v", errs),
+		}
+		return c.JSON(http.StatusUnprocessableEntity, resp)
+	}
+	return c.NoContent(http.StatusOK)
 }
 
 func (s *server) ssoHandler(c echo.Context) error {
