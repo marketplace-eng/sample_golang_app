@@ -106,7 +106,7 @@ func (s *server) provisionAccount(ctx context.Context, req *ProvisioningRequest)
 			licenseKey,
 		)
 	} else if err == nil {
-		// If so, reactivate the existing account
+		// If so, update the existing account
 		_, err = s.db.Exec(ctx, UpdateAccountSQL,
 			id,
 			req.Name,

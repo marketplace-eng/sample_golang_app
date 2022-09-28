@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"net/http"
 
@@ -57,7 +56,27 @@ func (s *server) deprovisionHandler(c echo.Context) error {
 func (s *server) planChangeHandler(c echo.Context) error {
 	s.e.Logger.Info("Got change request")
 	uuid := c.Param("resource_uuid")
-	return c.String(http.StatusOK, fmt.Sprintf("I'll change %s\n", uuid))
+
+	req := &PlanChangeRequest{}
+	err := c.Bind(req)
+	if err != nil {
+		return c.String(http.StatusBadRequest, "malformed request: "+err.Error())
+	}
+
+	err = s.planChange(context.Background(), req, uuid)
+
+	if err != nil {
+		_, ok := err.(*NotFoundError)
+		if ok {
+			return c.NoContent(http.StatusNotFound)
+		}
+		resp := &ErrorResponse{
+			Message: err.Error(),
+		}
+		return c.JSON(http.StatusUnprocessableEntity, resp)
+	}
+
+	return c.NoContent(http.StatusNoContent)
 }
 
 func (s *server) notificationHandler(c echo.Context) error {
