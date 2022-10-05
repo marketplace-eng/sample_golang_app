@@ -74,7 +74,7 @@ func (s *server) tradeAuthCode(ctx context.Context, oauth OauthGrant, uuid strin
 	exchangeReq := AuthCodeRequest{
 		Code:      oauth.Code,
 		GrantType: "authorization_code",
-		Secret:    clientSecret,
+		Secret:    s.config.clientSecret,
 	}
 
 	jsonBody, err := json.Marshal(exchangeReq)
@@ -143,7 +143,7 @@ func (s *server) refreshToken(ctx context.Context, token *Token, uuid string) (*
 	refreshReq := RefreshRequest{
 		GrantType:    "refresh_token",
 		RefreshToken: token.RefreshToken,
-		ClientSecret: clientSecret,
+		ClientSecret: s.config.clientSecret,
 	}
 
 	jsonBody, err := json.Marshal(refreshReq)

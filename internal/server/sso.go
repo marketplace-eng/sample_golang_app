@@ -19,26 +19,26 @@ type SsoRequest struct {
 	Id           string `param:"user_id" form:"user_id"`
 }
 
-func getJWT() (string, error) {
+func getJWT(salt string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"iat": time.Now().Unix(),
 		"exp": time.Now().Add(time.Minute * 15).Unix(),
 	})
 
 	// Sign and get the complete encoded token as a string using the secret
-	tokenString, err := token.SignedString(appSalt)
+	tokenString, err := token.SignedString(salt)
 
 	return tokenString, err
 }
 
-func validateToken(tokenString string) (bool, error) {
+func validateToken(tokenString string, salt string) (bool, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 
 		// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
-		return appSalt, nil
+		return salt, nil
 	})
 
 	if err != nil {
@@ -53,7 +53,7 @@ func validateToken(tokenString string) (bool, error) {
 }
 
 func (s *server) authorize(req *SsoRequest) (bool, error) {
-	authorized, err := validToken(req.Token, req.Timestamp, req.ResourceUUID)
+	authorized, err := validToken(req.Token, req.Timestamp, req.ResourceUUID, s.config.appSalt)
 	if err != nil {
 		return false, err
 	} else if !authorized {
@@ -63,7 +63,7 @@ func (s *server) authorize(req *SsoRequest) (bool, error) {
 	return true, nil
 }
 
-func validToken(token string, timestamp string, uuid string) (bool, error) {
+func validToken(token string, timestamp string, uuid string, salt string) (bool, error) {
 	// has this timestamp expired?
 	i, err := strconv.ParseInt(timestamp, 10, 64)
 	if err != nil {
@@ -81,7 +81,7 @@ func validToken(token string, timestamp string, uuid string) (bool, error) {
 	}
 	message := []byte(fmt.Sprintf("%s:%s", timestamp, uuid))
 
-	hash := hmac.New(sha256.New, []byte(appSalt))
+	hash := hmac.New(sha256.New, []byte(salt))
 	hash.Write(message)
 
 	return hmac.Equal(hash.Sum(nil), []byte(decodedToken)), nil

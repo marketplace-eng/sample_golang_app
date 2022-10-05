@@ -15,17 +15,21 @@ const (
 )
 
 type server struct {
-	e  *echo.Echo
-	db *pgxpool.Pool
+	e      *echo.Echo
+	db     *pgxpool.Pool
+	config *serverConfig
 }
 
 func StartServer(ctx context.Context, db *pgxpool.Pool) {
 	e := echo.New()
+
+	config := setupServer()
+
 	// DigitalOcean calls your app with basic auth headers, using slug and password set up on app creation
 	e.Use(middleware.BasicAuth(func(username, password string, c echo.Context) (bool, error) {
 		// Uses constant time comparison to prevent timing attacks
-		if subtle.ConstantTimeCompare([]byte(username), []byte(appSlug)) == 1 &&
-			subtle.ConstantTimeCompare([]byte(password), []byte(appPassword)) == 1 {
+		if subtle.ConstantTimeCompare([]byte(username), []byte(config.appSlug)) == 1 &&
+			subtle.ConstantTimeCompare([]byte(password), []byte(config.appPassword)) == 1 {
 			return true, nil
 		}
 		return false, nil
@@ -33,8 +37,9 @@ func StartServer(ctx context.Context, db *pgxpool.Pool) {
 	e.Logger.SetLevel(log.INFO)
 
 	s := &server{
-		e:  e,
-		db: db,
+		e:      e,
+		db:     db,
+		config: config,
 	}
 
 	// DigitalOcean endpoints

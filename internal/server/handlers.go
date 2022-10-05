@@ -121,11 +121,11 @@ func (s *server) ssoHandler(c echo.Context) error {
 		return c.NoContent(http.StatusUnauthorized)
 	}
 
-	token, err := getJWT()
+	token, err := getJWT(s.config.appSalt)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
-	c.Response().Header().Set("Location", appHomepage+"?secret="+token)
+	c.Response().Header().Set("Location", s.config.appHomepage+"?secret="+token)
 	return c.NoContent(http.StatusTemporaryRedirect)
 }
 
@@ -133,7 +133,7 @@ func (s *server) ssoHandler(c echo.Context) error {
 
 func (s *server) authorizeHandler(c echo.Context) error {
 	token := c.QueryParam("secret")
-	authorized, err := validateToken(token)
+	authorized, err := validateToken(token, s.config.appSalt)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
