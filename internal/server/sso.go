@@ -19,25 +19,28 @@ type SsoRequest struct {
 	Id           string `param:"user_id" form:"user_id"`
 }
 
+// Create and sign a JWT with a secret salt to give front-end in order to
+// verify authorization of a user
 func getJWT(salt string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"iat": time.Now().Unix(),
 		"exp": time.Now().Add(time.Minute * 15).Unix(),
 	})
 
-	// Sign and get the complete encoded token as a string using the secret
+	// Sign and get the complete encoded token as a string using the salt
 	tokenString, err := token.SignedString(salt)
 
 	return tokenString, err
 }
 
+// Check that a given JWT is still valid and untampered with
 func validateToken(tokenString string, salt string) (bool, error) {
+	// Parse the given token to ensure it is signed correctly and unmodified
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 
-		// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
 		return salt, nil
 	})
 
@@ -45,6 +48,7 @@ func validateToken(tokenString string, salt string) (bool, error) {
 		return false, err
 	}
 
+	// Verify token is still valid and unexpired
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 		return claims.VerifyExpiresAt(time.Now().Unix(), true), nil
 	} else {
@@ -52,6 +56,7 @@ func validateToken(tokenString string, salt string) (bool, error) {
 	}
 }
 
+// Validate a token included in a DigitalOcean SSO Request
 func (s *server) authorize(req *SsoRequest) (bool, error) {
 	authorized, err := validToken(req.Token, req.Timestamp, req.ResourceUUID, s.config.appSalt)
 	if err != nil {
@@ -63,6 +68,8 @@ func (s *server) authorize(req *SsoRequest) (bool, error) {
 	return true, nil
 }
 
+// Check that a given token matches the expected timestamp and app salt in order to
+// determine its validity
 func validToken(token string, timestamp string, uuid string, salt string) (bool, error) {
 	// has this timestamp expired?
 	i, err := strconv.ParseInt(timestamp, 10, 64)

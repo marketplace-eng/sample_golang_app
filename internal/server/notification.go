@@ -6,6 +6,7 @@ import (
 	"errors"
 )
 
+// These are some of the types of notifications DigitalOcean may send.
 const (
 	Suspended            = "resources.suspended"
 	Reactivated          = "resources.reactivated"
@@ -56,6 +57,9 @@ type PlanState struct {
 	UpdatedAt   int    `json:"updated_at"`
 }
 
+// Determine the type of a notification, and pass it to the relevant handler.
+// Handlers would provide logic to respond to each type of notification. In our example,
+// they simply record the notification as an Activity.
 func (s *server) parseNotification(ctx context.Context, n *Notification) []error {
 	var errs []error
 	switch n.Type {
@@ -74,6 +78,8 @@ func (s *server) parseNotification(ctx context.Context, n *Notification) []error
 	return errs
 }
 
+// Suspension notifications are used to communicate that a given account/user has
+// been suspended for some reason (e.g. overdue billing)
 func (s *server) suspensionNotification(ctx context.Context, n *Notification) []error {
 	errs := []error{}
 	payload := SuspensionPayload{}
@@ -84,7 +90,7 @@ func (s *server) suspensionNotification(ctx context.Context, n *Notification) []
 	}
 
 	for _, uuid := range payload.ResourceUUIDs {
-		// Logic to suspend a user would go here
+		// Any logic needed to handle suspended users in your application would go here
 		err = s.writeNotification(ctx, n, uuid)
 		if err != nil {
 			errs = append(errs, err)
@@ -94,6 +100,8 @@ func (s *server) suspensionNotification(ctx context.Context, n *Notification) []
 	return errs
 }
 
+// Reactivation notifications are used to communicate that a previously-suspended account/user
+// is back in good standing.
 func (s *server) reactivationNotification(ctx context.Context, n *Notification) []error {
 	errs := []error{}
 	payload := ReactivatedPayload{}
@@ -104,7 +112,7 @@ func (s *server) reactivationNotification(ctx context.Context, n *Notification) 
 	}
 
 	for _, uuid := range payload.ResourceUUIDs {
-		// Logic to reactivate a user would go here
+		// Any logic needed to handle reactivating users in your application would go here
 		err = s.writeNotification(ctx, n, uuid)
 		if err != nil {
 			errs = append(errs, err)
@@ -114,6 +122,8 @@ func (s *server) reactivationNotification(ctx context.Context, n *Notification) 
 	return nil
 }
 
+// Deprovisioning Failed notifications are used to inform you that a deprovisioning request
+// for a given user failed.
 func (s *server) deprovisionFailedNotification(ctx context.Context, n *Notification) []error {
 	errs := []error{}
 	payload := DeprovisioningFailedPayload{}
@@ -134,6 +144,7 @@ func (s *server) deprovisionFailedNotification(ctx context.Context, n *Notificat
 	return nil
 }
 
+// Update notifications are sent when a user's information or plan changes.
 func (s *server) updateNotification(ctx context.Context, n *Notification) error {
 	payload := UpdatedPayload{}
 	err := json.Unmarshal([]byte(n.Payload), &payload)
@@ -150,6 +161,7 @@ func (s *server) updateNotification(ctx context.Context, n *Notification) error 
 	return nil
 }
 
+// We write notifications to our Activities table for this example.
 func (s *server) writeNotification(ctx context.Context, n *Notification, uuid string) error {
 	var id int
 

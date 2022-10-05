@@ -10,22 +10,19 @@ import (
 	"github.com/labstack/gommon/log"
 )
 
-const (
-	addr = ":8082"
-)
-
 type server struct {
 	e      *echo.Echo
 	db     *pgxpool.Pool
 	config *serverConfig
 }
 
+// Start the server for our example application.
 func StartServer(ctx context.Context, db *pgxpool.Pool) {
 	e := echo.New()
 
 	config := setupServer()
 
-	// DigitalOcean calls your app with basic auth headers, using slug and password set up on app creation
+	// DigitalOcean will call your app with basic auth headers, using slug and password set up on app creation.
 	e.Use(middleware.BasicAuth(func(username, password string, c echo.Context) (bool, error) {
 		// Uses constant time comparison to prevent timing attacks
 		if subtle.ConstantTimeCompare([]byte(username), []byte(config.appSlug)) == 1 &&
@@ -54,11 +51,11 @@ func StartServer(ctx context.Context, db *pgxpool.Pool) {
 
 	e.POST("/digitalocean/sso", s.ssoHandler)
 
-	// Vendor app endpoints (subject to change)
+	// Vendor endpoints: for use by this example's front-end
 
 	e.POST("/config/:uuid", s.changeConfig)
 
 	e.POST("/authorize", s.authorizeHandler)
 
-	e.Logger.Fatal(e.Start(addr))
+	e.Logger.Fatal(e.Start(config.serverAddr))
 }

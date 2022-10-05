@@ -87,6 +87,8 @@ const (
 	`
 )
 
+// When a user adds your add-on to their account, DigitalOcean will send you a
+// provisioning request with user information for you to create an account in your application
 func (s *server) provisionAccount(ctx context.Context, req *ProvisioningRequest) (*ProvisioningResponse, error) {
 	licenseKey := newLicenseKey()
 	var id int
@@ -130,6 +132,8 @@ func (s *server) provisionAccount(ctx context.Context, req *ProvisioningRequest)
 		return nil, err
 	}
 
+	// Any user config information should be contained in the provisioning response.
+	// Our example uses license keys as sample config information.
 	resp := &ProvisioningResponse{
 		Id: req.ResourceUUID,
 		Config: ProvisioningConfig{

@@ -16,6 +16,8 @@ const (
 	`
 )
 
+// If a user chooses to change their plan, DigitalOcean will send a Plan Change request
+// with details of the new plan they are using
 func (s *server) planChange(ctx context.Context, req *PlanChangeRequest, uuid string) error {
 	commandTag, err := s.db.Exec(ctx, UpdatePlanSQL,
 		uuid,

@@ -70,6 +70,7 @@ const (
 	`
 )
 
+// Exchange the auth code issued on provisioning for an access token and refresh token for later use
 func (s *server) tradeAuthCode(ctx context.Context, oauth OauthGrant, uuid string) error {
 	exchangeReq := AuthCodeRequest{
 		Code:      oauth.Code,
@@ -95,6 +96,7 @@ func (s *server) tradeAuthCode(ctx context.Context, oauth OauthGrant, uuid strin
 	return nil
 }
 
+// Save a given access and refresh token for a given user for later use
 func (s *server) saveToken(ctx context.Context, token *Token, uuid string) error {
 	_, err := s.db.Exec(ctx, InsertTokenSQL,
 		uuid,
@@ -110,8 +112,9 @@ func (s *server) saveToken(ctx context.Context, token *Token, uuid string) error
 	return nil
 }
 
+// Get a valid access token for a user. Refreshes token if necessary.
 func (s *server) getAccessToken(ctx context.Context, uuid string) (string, error) {
-	// get access token, refresh token, expire time from db for this uuid
+	// Get access token, refresh token, expire time from db for this uuid
 	token, err := s.readTokens(ctx, uuid)
 	if err != nil {
 		return "", err
@@ -129,6 +132,7 @@ func (s *server) getAccessToken(ctx context.Context, uuid string) (string, error
 	return token.AccessToken, nil
 }
 
+// Get tokens for a given account
 func (s *server) readTokens(ctx context.Context, uuid string) (*Token, error) {
 	token := &Token{}
 	err := s.db.QueryRow(ctx, GetTokenSQL, uuid).Scan(token)
@@ -139,6 +143,7 @@ func (s *server) readTokens(ctx context.Context, uuid string) (*Token, error) {
 	return token, nil
 }
 
+// Trade a refresh token for a new access token, and get a new refresh token. Save both.
 func (s *server) refreshToken(ctx context.Context, token *Token, uuid string) (*Token, error) {
 	refreshReq := RefreshRequest{
 		GrantType:    "refresh_token",
@@ -164,6 +169,8 @@ func (s *server) refreshToken(ctx context.Context, token *Token, uuid string) (*
 	return token, nil
 }
 
+// Send in a given request in order to get a token response back.
+// Used for both initial auth code trade-in and for token refreshes.
 func makeTokenRequest(jsonBody []byte) (*Token, error) {
 	bodyReader := bytes.NewReader(jsonBody)
 

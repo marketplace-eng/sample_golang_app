@@ -2,6 +2,7 @@ package models
 
 import "time"
 
+// Status of an account. Can be either active or suspsended.
 type Status int64
 
 const (
@@ -9,6 +10,7 @@ const (
 	Suspended
 )
 
+// Sample Account structure used in this example
 type Account struct {
 	Id              int
 	Name            string

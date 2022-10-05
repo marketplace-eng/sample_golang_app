@@ -4,6 +4,7 @@ import (
 	"context"
 )
 
+// Custom error used specifically to indicate no account was found
 type NotFoundError struct{}
 
 func (e *NotFoundError) Error() string {
@@ -22,7 +23,7 @@ const (
 	`
 )
 
-// If given a deprovisioning request, update the status of the account to Deprovisioned
+// If given a deprovisioning request, delete the account's row and token entries
 func (s *server) deprovisionRequest(ctx context.Context, uuid string) error {
 	commandTag, err := s.db.Exec(ctx, DeactivateAccountSQL, uuid)
 	if err != nil {

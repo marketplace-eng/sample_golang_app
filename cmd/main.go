@@ -9,6 +9,7 @@ import (
 )
 
 func main() {
+	// Connect to database
 	ctx := context.Background()
 	db, err := database.OpenDB()
 	if err != nil {
@@ -27,5 +28,6 @@ func main() {
 
 	fmt.Println(greeting)
 
+	// Start up server and start handling requests
 	server.StartServer(ctx, db)
 }
