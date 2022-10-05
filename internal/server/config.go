@@ -1,8 +1,9 @@
 package server
 
 const (
-	appSlug     = ""
-	appPassword = ""
-	appSalt     = ""
-	appHomepage = ""
+	appSlug      = ""
+	appPassword  = ""
+	appSalt      = ""
+	appHomepage  = ""
+	clientSecret = ""
 )

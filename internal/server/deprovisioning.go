@@ -15,6 +15,11 @@ const (
 	DELETE FROM accounts 
 	WHERE resource_uuid=$1;
 	`
+
+	DeleteTokenSQL = `
+	DELETE FROM tokens
+	WHERE resource_uuid=$1
+	`
 )
 
 // If given a deprovisioning request, update the status of the account to Deprovisioned
@@ -26,5 +31,11 @@ func (s *server) deprovisionRequest(ctx context.Context, uuid string) error {
 	if commandTag.RowsAffected() == 0 {
 		return &NotFoundError{}
 	}
+
+	_, err = s.db.Exec(ctx, DeleteTokenSQL, uuid)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

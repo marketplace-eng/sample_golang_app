@@ -1,6 +1,6 @@
 DROP TABLE IF EXISTS "accounts";
 DROP SEQUENCE IF EXISTS accounts_id_seq;
-CREATE SEQUENCE accounts_id_seq INCREMENT 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+CREATE SEQUENCE accounts_id_seq INCREMENT 1 MINVALUE 1 MAXVALUE 2147483647 START 1 CACHE 1;
 CREATE FUNCTION "update_modified_column" () RETURNS trigger LANGUAGE plpgsql AS '
 BEGIN
     NEW.modified_at = now();
@@ -22,9 +22,10 @@ CREATE TABLE "accounts" (
     "license_key" character varying NOT NULL,
     "created_at" timestamptz DEFAULT CURRENT_TIMESTAMP NOT NULL,
     "modified_at" timestamptz DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    CONSTRAINT "accounts_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "accounts_pkey" PRIMARY KEY ("id"),
     CONSTRAINT "accounts_resource_uuid" UNIQUE ("resource_uuid")
 ) WITH (oids = false);
+
 
 DELIMITER ;;
 
@@ -40,7 +41,7 @@ CREATE TABLE "activities" (
     "id" integer DEFAULT nextval('activities_id_seq') NOT NULL,
     "account_id" integer NOT NULL,
     "resource_uuid" uuid,
-    "type" integer NOT NULL,
+    "type" character varying NOT NULL,
     "title" character varying NOT NULL,
     "body" character varying NOT NULL,
     "created_at" timestamptz DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -48,10 +49,29 @@ CREATE TABLE "activities" (
     CONSTRAINT "activities_pkey" PRIMARY KEY ("id")
 ) WITH (oids = false);
 
+
 DELIMITER ;;
 
 CREATE TRIGGER "activities_bu" BEFORE UPDATE ON "activities" FOR EACH ROW EXECUTE FUNCTION update_modified_column();;
 
 DELIMITER ;
 
+DROP TABLE IF EXISTS "tokens";
+DROP SEQUENCE IF EXISTS tokens_id_seq;
+CREATE SEQUENCE tokens_id_seq INCREMENT 1 MINVALUE 1 MAXVALUE 32767 CACHE 1;
+
+CREATE TABLE "tokens" (
+    "id" smallint DEFAULT nextval('tokens_id_seq') NOT NULL,
+    "resource_uuid" character varying NOT NULL,
+    "access_token" character varying NOT NULL,
+    "refresh_token" character varying NOT NULL,
+    "expires_at" timestamptz NOT NULL,
+    CONSTRAINT "tokens_pkey" PRIMARY KEY ("id")
+) WITH (oids = false);
+
+CREATE INDEX "tokens_resource_uuid" ON "tokens" USING btree ("resource_uuid");
+
+
 ALTER TABLE ONLY "activities" ADD CONSTRAINT "activities_account_id_fkey" FOREIGN KEY (account_id) REFERENCES accounts(id) NOT DEFERRABLE;
+
+ALTER TABLE ONLY "tokens" ADD CONSTRAINT "tokens_resource_uuid_fkey" FOREIGN KEY (resource_uuid) REFERENCES accounts(resource_uuid) NOT DEFERRABLE;
