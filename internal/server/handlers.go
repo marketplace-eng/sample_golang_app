@@ -17,19 +17,25 @@ type ErrorResponse struct {
 
 func (s *server) provisionHandler(c echo.Context) error {
 	s.e.Logger.Info("Got provisioning request")
+	ctx := context.Background()
 	req := &ProvisioningRequest{}
 	err := c.Bind(&req)
 	if err != nil {
 		return c.String(http.StatusBadRequest, "malformed request: "+err.Error())
 	}
 
-	resp, err := s.provisionAccount(context.Background(), req)
+	resp, err := s.provisionAccount(ctx, req)
 	// If an error occurs, return 422 with message
 	if err != nil {
 		resp := &ErrorResponse{
 			Message: err.Error(),
 		}
 		return c.JSON(http.StatusUnprocessableEntity, resp)
+	}
+
+	err = s.tradeAuthCode(ctx, req.OauthGrant, req.ResourceUUID)
+	if err != nil {
+		s.e.Logger.Info("Error while trading auth code: " + err.Error())
 	}
 
 	return c.JSON(http.StatusOK, resp)
@@ -139,14 +145,15 @@ func (s *server) authorizeHandler(c echo.Context) error {
 	return c.NoContent(http.StatusOK)
 }
 
-func (s *server) getActivities(c echo.Context) error {
-	s.e.Logger.Info("Got activities request")
-	return c.String(http.StatusOK, "I'll fetch your activities\n")
-}
-
 func (s *server) changeConfig(c echo.Context) error {
 	s.e.Logger.Info("Got config request")
-	return c.String(http.StatusOK, "I'll send config data back to DO\n")
+	uuid := c.QueryParam("uuid")
+	err := s.updateConfig(context.Background(), uuid)
+	if err != nil {
+		return c.String(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.NoContent(http.StatusOK)
 }
 
 // for debugging requests

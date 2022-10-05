@@ -4,8 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"sample_app/models"
-
-	"github.com/google/uuid"
 )
 
 type ProvisioningRequest struct {
@@ -66,6 +64,10 @@ type ProvisioningResponse struct {
 
 type ProvisioningConfig struct {
 	LicenseKey string `json:"LICENSE_KEY"`
+}
+
+type ConfigUpdate struct {
+	Config ProvisioningConfig `json:"config"`
 }
 
 const (
@@ -136,8 +138,4 @@ func (s *server) provisionAccount(ctx context.Context, req *ProvisioningRequest)
 		Message: "Account provisioning succeeded!",
 	}
 	return resp, nil
-}
-
-func newLicenseKey() string {
-	return uuid.New().String()
 }

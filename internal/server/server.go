@@ -51,9 +51,7 @@ func StartServer(ctx context.Context, db *pgxpool.Pool) {
 
 	// Vendor app endpoints (subject to change)
 
-	e.GET("/activities", s.getActivities)
-
-	e.POST("/config", s.changeConfig)
+	e.POST("/config/:uuid", s.changeConfig)
 
 	e.POST("/authorize", s.authorizeHandler)
 
