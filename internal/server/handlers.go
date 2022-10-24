@@ -158,7 +158,7 @@ func (s *server) ssoHandler(c echo.Context) error {
 	// a token with the app salt to add as a query parameter. This gets
 	// passed to the front-end as part of the redirect, and the front-end will
 	// validate it to log the user in.
-	token, err := getJWT(s.config.appSalt)
+	token, err := getJWT(s.config.appSalt, req.ResourceUUID)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
@@ -172,8 +172,13 @@ func (s *server) ssoHandler(c echo.Context) error {
 // log a user in. The front-end's half of the SSO request above.
 func (s *server) authorizeHandler(c echo.Context) error {
 	// Validate the given token
-	token := c.QueryParam("secret")
-	authorized, err := validateToken(token, s.config.appSalt)
+	req := &AuthorizeRequest{}
+	err := c.Bind(req)
+	if err != nil {
+		return c.String(http.StatusBadRequest, "malformed request: "+err.Error())
+	}
+
+	authorized, err := validateToken(req.Secret, s.config.appSalt)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
@@ -184,7 +189,11 @@ func (s *server) authorizeHandler(c echo.Context) error {
 	}
 
 	// Otherwise, return a successful response
-	return c.NoContent(http.StatusOK)
+	res, err := s.buildAuthResponse(context.Background(), req)
+	if err != nil {
+		return c.String(http.StatusInternalServerError, err.Error())
+	}
+	return c.JSON(http.StatusOK, res)
 }
 
 // Used to demonstrate sending updated config information to DigitalOcean.

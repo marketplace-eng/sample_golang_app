@@ -55,7 +55,7 @@ func StartServer(ctx context.Context, db *pgxpool.Pool) {
 
 	e.POST("/config/:uuid", s.changeConfig)
 
-	e.POST("/authorize", s.authorizeHandler)
+	e.POST("/authorize/sso", s.authorizeHandler)
 
 	e.Logger.Fatal(e.Start(config.serverAddr))
 }
