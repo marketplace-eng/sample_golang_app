@@ -21,8 +21,8 @@ type serverConfig struct {
 func setupServer() *serverConfig {
 	config := &serverConfig{
 		appSlug:      valueOrDefault("APP_SLUG", "sample_app"),
-		appPassword:  valueOrDefault("APP_PASSWORD", ""),
-		appSalt:      valueOrDefault("APP_SALT", ""),
+		appPassword:  valueOrDefault("APP_PASSWORD", "password"),
+		appSalt:      valueOrDefault("APP_SALT", "salt"),
 		appHomepage:  valueOrDefault("APP_HOMEPAGE", ""),
 		clientSecret: valueOrDefault("CLIENT_SECRET", ""),
 		serverAddr:   valueOrDefault("SERVER_ADDR", ":8082"),

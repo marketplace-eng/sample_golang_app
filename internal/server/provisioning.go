@@ -2,8 +2,9 @@ package server
 
 import (
 	"context"
-	"database/sql"
 	"sample_app/models"
+
+	"github.com/jackc/pgx/v4"
 )
 
 type ProvisioningRequest struct {
@@ -95,7 +96,7 @@ func (s *server) provisionAccount(ctx context.Context, req *ProvisioningRequest)
 
 	// Check if this account UUID has previously provisioned an account
 	err := s.db.QueryRow(ctx, GetAccountSQL, req.ResourceUUID).Scan(&id)
-	if err == sql.ErrNoRows {
+	if err == pgx.ErrNoRows {
 		// If not, create a new account for them
 		_, err = s.db.Exec(ctx, InsertAccountSQL,
 			req.Name,
@@ -123,7 +124,7 @@ func (s *server) provisionAccount(ctx context.Context, req *ProvisioningRequest)
 			licenseKey,
 		)
 	} else {
-		s.e.Logger.Error("Unable to query for account presence" + err.Error())
+		s.e.Logger.Error("Unable to query for account presence: " + err.Error())
 		return nil, err
 	}
 
