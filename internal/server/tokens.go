@@ -57,7 +57,7 @@ const (
 
 	InsertTokenSQL = `
 	INSERT INTO tokens (resource_uuid, access_token, refresh_token, expires_at)
-	VALUES ($1, $2, $3, $4, $5);
+	VALUES ($1, $2, $3, $4);
 	`
 	GetTokenSQL = `
 	SELECT * FROM tokens WHERE resource_uuid=$1;
