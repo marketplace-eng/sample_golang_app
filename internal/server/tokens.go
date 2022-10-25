@@ -102,7 +102,7 @@ func (s *server) saveToken(ctx context.Context, token *Token, uuid string) error
 		uuid,
 		token.AccessToken,
 		token.RefreshToken,
-		time.Now().Unix()+token.ExpiresIn,
+		time.Unix(time.Now().Unix()+token.ExpiresIn, 0),
 	)
 
 	if err != nil {
