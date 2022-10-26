@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 )
 
 // These are some of the types of notifications DigitalOcean may send.
@@ -20,9 +21,9 @@ const (
 )
 
 type Notification struct {
-	Type      string `json:"type" form:"type"`
-	CreatedAt int    `json:"created_at" form:"created_at"`
-	Payload   string `json:"payload" form:"payload"`
+	Type      string      `json:"type" form:"type"`
+	CreatedAt int         `json:"created_at" form:"created_at"`
+	Payload   interface{} `json:"payload" form:"payload"`
 }
 
 type SuspensionPayload struct {
@@ -84,7 +85,7 @@ func (s *server) parseNotification(ctx context.Context, n *Notification) []error
 func (s *server) suspensionNotification(ctx context.Context, n *Notification) []error {
 	errs := []error{}
 	payload := SuspensionPayload{}
-	err := json.Unmarshal([]byte(n.Payload), &payload)
+	err := json.Unmarshal([]byte(fmt.Sprintf("%v", n.Payload)), &payload)
 	if err != nil {
 		errs = append(errs, err)
 		return errs
@@ -106,7 +107,7 @@ func (s *server) suspensionNotification(ctx context.Context, n *Notification) []
 func (s *server) reactivationNotification(ctx context.Context, n *Notification) []error {
 	errs := []error{}
 	payload := ReactivatedPayload{}
-	err := json.Unmarshal([]byte(n.Payload), &payload)
+	err := json.Unmarshal([]byte(fmt.Sprintf("%v", n.Payload)), &payload)
 	if err != nil {
 		errs = append(errs, err)
 		return errs
@@ -128,7 +129,7 @@ func (s *server) reactivationNotification(ctx context.Context, n *Notification) 
 func (s *server) deprovisionFailedNotification(ctx context.Context, n *Notification) []error {
 	errs := []error{}
 	payload := DeprovisioningFailedPayload{}
-	err := json.Unmarshal([]byte(n.Payload), &payload)
+	err := json.Unmarshal([]byte(fmt.Sprintf("%v", n.Payload)), &payload)
 	if err != nil {
 		errs = append(errs, err)
 		return errs
@@ -148,7 +149,7 @@ func (s *server) deprovisionFailedNotification(ctx context.Context, n *Notificat
 // Update notifications are sent when a user's information or plan changes.
 func (s *server) updateNotification(ctx context.Context, n *Notification) error {
 	payload := UpdatedPayload{}
-	err := json.Unmarshal([]byte(n.Payload), &payload)
+	err := json.Unmarshal([]byte(fmt.Sprintf("%v", n.Payload)), &payload)
 	if err != nil {
 		return err
 	}
