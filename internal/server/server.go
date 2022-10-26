@@ -41,6 +41,8 @@ func StartServer(ctx context.Context, db *pgxpool.Pool) {
 
 	// DigitalOcean endpoints
 
+	e.GET("/", s.ssoHandler)
+
 	e.POST("/digitalocean/resources", s.provisionHandler)
 
 	e.DELETE("/digitalocean/resources/:resource_uuid", s.deprovisionHandler)
