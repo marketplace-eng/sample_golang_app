@@ -113,11 +113,16 @@ func (s *server) planChangeHandler(c echo.Context) error {
 func (s *server) notificationHandler(c echo.Context) error {
 	// Parse the request
 	s.e.Logger.Info("Got notification request")
+	s.e.Logger.Info(c.Request().Header)
 	req := &Notification{}
 	err := c.Bind(req)
 	if err != nil {
 		return c.String(http.StatusBadRequest, "malformed request: "+err.Error())
 	}
+
+	s.e.Logger.Info("type: " + req.Type)
+	s.e.Logger.Info("createdat: " + fmt.Sprint(req.CreatedAt))
+	s.e.Logger.Info("payload: " + req.Payload)
 
 	// Determine the type of notification and pass to the relevant handler
 	errs := s.parseNotification(context.Background(), req)

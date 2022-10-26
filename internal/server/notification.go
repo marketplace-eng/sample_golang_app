@@ -62,6 +62,7 @@ type PlanState struct {
 // they simply record the notification as an Activity.
 func (s *server) parseNotification(ctx context.Context, n *Notification) []error {
 	var errs []error
+	s.e.Logger.Info("Got notification of type " + n.Type)
 	switch n.Type {
 	case Suspended:
 		errs = s.suspensionNotification(ctx, n)
@@ -165,8 +166,10 @@ func (s *server) updateNotification(ctx context.Context, n *Notification) error 
 func (s *server) writeNotification(ctx context.Context, n *Notification, uuid string) error {
 	var id int
 
+	s.e.Logger.Info("Writing notification")
 	err := s.db.QueryRow(ctx, GetAccountSQL, uuid).Scan(&id)
 	if err != nil {
+		s.e.Logger.Error("Error finding account id: " + err.Error())
 		return err
 	}
 
@@ -178,6 +181,7 @@ func (s *server) writeNotification(ctx context.Context, n *Notification, uuid st
 		n.Payload,
 	)
 	if err != nil {
+		s.e.Logger.Error("Error writing notification: " + err.Error())
 		return err
 	}
 
