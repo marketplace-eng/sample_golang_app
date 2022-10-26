@@ -114,17 +114,50 @@ func (s *server) notificationHandler(c echo.Context) error {
 	// Parse the request
 	s.e.Logger.Info("Got notification request")
 	s.e.Logger.Info(c.Request().Header)
-	req := &Notification{}
-	err := c.Bind(req)
+
+	// req := &Notification{}
+	var req interface{}
+	err := c.Bind(&req)
 	if err != nil {
 		return c.String(http.StatusBadRequest, "malformed request: "+err.Error())
 	}
 
-	s.e.Logger.Info("type: " + req.Type)
-	s.e.Logger.Info("createdat: " + fmt.Sprint(req.CreatedAt))
+	m := req.(map[string]interface{})
+	t := m["type"].(string)
+	var n Notification
+	switch t {
+	case Suspended:
+		n = &SuspensionNotification{}
+	case Reactivated:
+		n = &ReactivatedNotification{}
+	case DeprovisioningFailed:
+		n = &DeprovisioningFailedNotification{}
+	case Updated:
+		n = &UpdatedNotification{}
+	default:
+		s.e.Logger.Info("Unknown notification type")
+		resp := &ErrorResponse{
+			Message: "Unknown notification type",
+		}
 
-	// Determine the type of notification and pass to the relevant handler
-	errs := s.parseNotification(context.Background(), req)
+		// Return a 422 with message if errors occur
+		return c.JSON(http.StatusUnprocessableEntity, resp)
+	}
+
+	err = c.Bind(n)
+	if err != nil {
+		s.e.Logger.Info("Error binding notification: " + err.Error())
+		resp := &ErrorResponse{
+			Message: err.Error(),
+		}
+
+		// Return a 422 with message if errors occur
+		return c.JSON(http.StatusUnprocessableEntity, resp)
+	}
+
+	// Pass to the relevant handler
+	errs := s.parseNotification(context.Background(), n)
+
 	if len(errs) > 0 {
 		resp := &ErrorResponse{
 			Message: fmt.Sprintf("Errors occurred: %v", errs),
@@ -132,7 +165,7 @@ func (s *server) notificationHandler(c echo.Context) error {
 		// Return a 422 with message if errors occur
 		return c.JSON(http.StatusUnprocessableEntity, resp)
 	}
-	// Return a successful response
+	// // Return a successful response
 	return c.NoContent(http.StatusOK)
 }
 

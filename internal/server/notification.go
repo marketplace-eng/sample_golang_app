@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 )
@@ -20,27 +19,74 @@ const (
 	`
 )
 
-type Notification struct {
-	Type      string      `json:"type" form:"type"`
-	CreatedAt int         `json:"created_at" form:"created_at"`
-	Payload   interface{} `json:"payload" form:"payload"`
+type Notification interface {
+	GetType() string
+	GetPayload() string
 }
 
-type SuspensionPayload struct {
-	ResourceUUIDs []string `json:"resources_uuids"`
+type SuspensionNotification struct {
+	Type      string `json:"type" form:"type"`
+	CreatedAt int    `json:"created_at" form:"created_at"`
+	Payload   struct {
+		ResourceUUIDs []string `json:"resources_uuids"`
+	} `json:"payload"`
 }
 
-type ReactivatedPayload struct {
-	ResourceUUIDs []string `json:"resources_uuids"`
+func (n *SuspensionNotification) GetType() string {
+	return n.Type
 }
 
-type DeprovisioningFailedPayload struct {
-	ResourceUUIDs []string `json:"resources_uuids"`
+func (n *SuspensionNotification) GetPayload() string {
+	return fmt.Sprintf("%v", n.Payload)
 }
 
-type UpdatedPayload struct {
-	Resource ResourceState `json:"resource"`
-	Plan     PlanState     `json:"plan"`
+type ReactivatedNotification struct {
+	Type      string `json:"type" form:"type"`
+	CreatedAt int    `json:"created_at" form:"created_at"`
+	Payload   struct {
+		ResourceUUIDs []string `json:"resources_uuids"`
+	} `json:"payload"`
+}
+
+func (n *ReactivatedNotification) GetType() string {
+	return n.Type
+}
+
+func (n *ReactivatedNotification) GetPayload() string {
+	return fmt.Sprintf("%v", n.Payload)
+}
+
+type DeprovisioningFailedNotification struct {
+	Type      string `json:"type" form:"type"`
+	CreatedAt int    `json:"created_at" form:"created_at"`
+	Payload   struct {
+		ResourceUUIDs []string `json:"resources_uuids"`
+	} `json:"payload"`
+}
+
+func (n *DeprovisioningFailedNotification) GetType() string {
+	return n.Type
+}
+
+func (n *DeprovisioningFailedNotification) GetPayload() string {
+	return fmt.Sprintf("%v", n.Payload)
+}
+
+type UpdatedNotification struct {
+	Type      string `json:"type" form:"type"`
+	CreatedAt int    `json:"created_at" form:"created_at"`
+	Payload   struct {
+		Resource ResourceState `json:"resource"`
+		Plan     PlanState     `json:"plan"`
+	} `json:"payload"`
+}
+
+func (n *UpdatedNotification) GetType() string {
+	return n.Type
+}
+
+func (n *UpdatedNotification) GetPayload() string {
+	return fmt.Sprintf("%v", n.Payload)
 }
 
 type ResourceState struct {
@@ -61,18 +107,18 @@ type PlanState struct {
 // Determine the type of a notification, and pass it to the relevant handler.
 // Handlers would provide logic to respond to each type of notification. In our example,
 // they simply record the notification as an Activity.
-func (s *server) parseNotification(ctx context.Context, n *Notification) []error {
+func (s *server) parseNotification(ctx context.Context, n Notification) []error {
 	var errs []error
-	s.e.Logger.Info("Got notification of type " + n.Type)
-	switch n.Type {
+	s.e.Logger.Info("Got notification of type " + n.GetType())
+	switch n.GetType() {
 	case Suspended:
-		errs = s.suspensionNotification(ctx, n)
+		errs = s.suspensionNotification(ctx, n.(*SuspensionNotification))
 	case Reactivated:
-		errs = s.reactivationNotification(ctx, n)
+		errs = s.reactivationNotification(ctx, n.(*ReactivatedNotification))
 	case DeprovisioningFailed:
-		errs = s.deprovisionFailedNotification(ctx, n)
+		errs = s.deprovisionFailedNotification(ctx, n.(*DeprovisioningFailedNotification))
 	case Updated:
-		err := s.updateNotification(ctx, n)
+		err := s.updateNotification(ctx, n.(*UpdatedNotification))
 		errs = append(errs, err)
 	default:
 		errs = append(errs, errors.New("unrecognized notification type"))
@@ -82,18 +128,11 @@ func (s *server) parseNotification(ctx context.Context, n *Notification) []error
 
 // Suspension notifications are used to communicate that a given account/user has
 // been suspended for some reason (e.g. overdue billing)
-func (s *server) suspensionNotification(ctx context.Context, n *Notification) []error {
+func (s *server) suspensionNotification(ctx context.Context, n *SuspensionNotification) []error {
 	errs := []error{}
-	payload := SuspensionPayload{}
-	err := json.Unmarshal([]byte(fmt.Sprintf("%v", n.Payload)), &payload)
-	if err != nil {
-		errs = append(errs, err)
-		return errs
-	}
-
-	for _, uuid := range payload.ResourceUUIDs {
+	for _, uuid := range n.Payload.ResourceUUIDs {
 		// Any logic needed to handle suspended users in your application would go here
-		err = s.writeNotification(ctx, n, uuid)
+		err := s.writeNotification(ctx, n, uuid)
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -104,58 +143,38 @@ func (s *server) suspensionNotification(ctx context.Context, n *Notification) []
 
 // Reactivation notifications are used to communicate that a previously-suspended account/user
 // is back in good standing.
-func (s *server) reactivationNotification(ctx context.Context, n *Notification) []error {
+func (s *server) reactivationNotification(ctx context.Context, n *ReactivatedNotification) []error {
 	errs := []error{}
-	payload := ReactivatedPayload{}
-	err := json.Unmarshal([]byte(fmt.Sprintf("%v", n.Payload)), &payload)
-	if err != nil {
-		errs = append(errs, err)
-		return errs
-	}
-
-	for _, uuid := range payload.ResourceUUIDs {
+	for _, uuid := range n.Payload.ResourceUUIDs {
 		// Any logic needed to handle reactivating users in your application would go here
-		err = s.writeNotification(ctx, n, uuid)
+		err := s.writeNotification(ctx, n, uuid)
 		if err != nil {
 			errs = append(errs, err)
 		}
 	}
 
-	return nil
+	return errs
 }
 
 // Deprovisioning Failed notifications are used to inform you that a deprovisioning request
 // for a given user failed.
-func (s *server) deprovisionFailedNotification(ctx context.Context, n *Notification) []error {
+func (s *server) deprovisionFailedNotification(ctx context.Context, n *DeprovisioningFailedNotification) []error {
 	errs := []error{}
-	payload := DeprovisioningFailedPayload{}
-	err := json.Unmarshal([]byte(fmt.Sprintf("%v", n.Payload)), &payload)
-	if err != nil {
-		errs = append(errs, err)
-		return errs
-	}
-
-	for _, uuid := range payload.ResourceUUIDs {
+	for _, uuid := range n.Payload.ResourceUUIDs {
 		// Logic to handle failed deprovisions would go here
-		err = s.writeNotification(ctx, n, uuid)
+		err := s.writeNotification(ctx, n, uuid)
 		if err != nil {
 			errs = append(errs, err)
 		}
 	}
 
-	return nil
+	return errs
 }
 
 // Update notifications are sent when a user's information or plan changes.
-func (s *server) updateNotification(ctx context.Context, n *Notification) error {
-	payload := UpdatedPayload{}
-	err := json.Unmarshal([]byte(fmt.Sprintf("%v", n.Payload)), &payload)
-	if err != nil {
-		return err
-	}
-
+func (s *server) updateNotification(ctx context.Context, n *UpdatedNotification) error {
 	// Logic to update a user's plan or state would go here
-	err = s.writeNotification(ctx, n, payload.Resource.UUID)
+	err := s.writeNotification(ctx, n, n.Payload.Resource.UUID)
 	if err != nil {
 		return err
 	}
@@ -164,7 +183,7 @@ func (s *server) updateNotification(ctx context.Context, n *Notification) error 
 }
 
 // We write notifications to our Activities table for this example.
-func (s *server) writeNotification(ctx context.Context, n *Notification, uuid string) error {
+func (s *server) writeNotification(ctx context.Context, n Notification, uuid string) error {
 	var id int
 
 	s.e.Logger.Info("Writing notification")
@@ -178,8 +197,8 @@ func (s *server) writeNotification(ctx context.Context, n *Notification, uuid st
 		id,
 		uuid,
 		"DigitalOcean",
-		n.Type,
-		n.Payload,
+		n.GetType(),
+		n.GetPayload(),
 	)
 	if err != nil {
 		s.e.Logger.Error("Error writing notification: " + err.Error())
