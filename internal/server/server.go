@@ -22,6 +22,15 @@ func StartServer(ctx context.Context, db *pgxpool.Pool) {
 
 	config := setupServer()
 
+	// DigitalOcean will call your app with basic auth headers, using slug and password set up on app creation.
+	e.Use(middleware.BasicAuth(func(username, password string, c echo.Context) (bool, error) {
+		// Uses constant time comparison to prevent timing attacks
+		if subtle.ConstantTimeCompare([]byte(username), []byte(config.appSlug)) == 1 &&
+			subtle.ConstantTimeCompare([]byte(password), []byte(config.appPassword)) == 1 {
+			return true, nil
+		}
+		return false, nil
+	}))
 	e.Logger.SetLevel(log.INFO)
 
 	s := &server{
@@ -30,36 +39,23 @@ func StartServer(ctx context.Context, db *pgxpool.Pool) {
 		config: config,
 	}
 
-	// DigitalOcean will call your app with basic auth headers, using slug and password set up on app creation.
-	authedEndpoints := e.Group("/")
-	authedEndpoints.Use(middleware.BasicAuth(func(username, password string, c echo.Context) (bool, error) {
-		// Uses constant time comparison to prevent timing attacks
-		if subtle.ConstantTimeCompare([]byte(username), []byte(config.appSlug)) == 1 &&
-			subtle.ConstantTimeCompare([]byte(password), []byte(config.appPassword)) == 1 {
-			return true, nil
-		}
-		return false, nil
-	}))
-
 	// DigitalOcean endpoints
 
-	e.GET("/", s.ssoHandler)
+	e.POST("/digitalocean/resources", s.provisionHandler)
 
-	authedEndpoints.POST("/digitalocean/resources", s.provisionHandler)
+	e.DELETE("/digitalocean/resources/:resource_uuid", s.deprovisionHandler)
 
-	authedEndpoints.DELETE("/digitalocean/resources/:resource_uuid", s.deprovisionHandler)
+	e.PUT("/digitalocean/resources/:resource_uuid", s.planChangeHandler)
 
-	authedEndpoints.PUT("/digitalocean/resources/:resource_uuid", s.planChangeHandler)
+	e.POST("/digitalocean/notifications", s.notificationHandler)
 
-	authedEndpoints.POST("/digitalocean/notifications", s.notificationHandler)
-
-	authedEndpoints.POST("/digitalocean/sso", s.ssoHandler)
+	e.POST("/digitalocean/sso", s.ssoHandler)
 
 	// Vendor endpoints: for use by this example's front-end
 
-	authedEndpoints.POST("/config/:uuid", s.changeConfig)
+	e.POST("/config/:uuid", s.changeConfig)
 
-	authedEndpoints.POST("/authorize/sso", s.authorizeHandler)
+	e.POST("/authorize/sso", s.authorizeHandler)
 
 	e.Logger.Fatal(e.Start(config.serverAddr))
 }
