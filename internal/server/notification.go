@@ -20,9 +20,9 @@ const (
 )
 
 type Notification struct {
-	Type      string `json:"type"`
-	CreatedAt int    `json:"created_at"`
-	Payload   string `json:"payload"`
+	Type      string `json:"type" form:"type"`
+	CreatedAt int    `json:"created_at" form:"created_at"`
+	Payload   string `json:"payload" form:"payload"`
 }
 
 type SuspensionPayload struct {
