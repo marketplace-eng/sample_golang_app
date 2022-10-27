@@ -135,7 +135,7 @@ func (s *server) getAccessToken(ctx context.Context, uuid string) (string, error
 // Get tokens for a given account
 func (s *server) readTokens(ctx context.Context, uuid string) (*Token, error) {
 	token := &Token{}
-	err := s.db.QueryRow(ctx, GetTokenSQL, uuid).Scan(token)
+	err := s.db.QueryRow(ctx, GetTokenSQL, uuid).Scan(*token)
 	if err != nil {
 		s.e.Logger.Error("Unable to fetch tokens: " + err.Error())
 		return nil, err
