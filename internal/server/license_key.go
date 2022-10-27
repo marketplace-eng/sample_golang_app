@@ -26,6 +26,8 @@ const (
 func (s *server) updateConfig(ctx context.Context, uuid string) error {
 	configURL := "https://api.digitalocean.com:443/v2/add-ons/resources/" + uuid + "/config"
 
+	s.e.Logger.Info("Searching for tokens for " + uuid)
+
 	// Fetch the access token to authorize the request
 	token, err := s.getAccessToken(ctx, uuid)
 	if err != nil {
