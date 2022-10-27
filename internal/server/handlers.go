@@ -250,7 +250,9 @@ func (s *server) authorizeHandler(c echo.Context) error {
 func (s *server) changeConfig(c echo.Context) error {
 	// Parse the request
 	s.e.Logger.Info("Got config request")
-	uuid := c.QueryParam("uuid")
+	uuid := c.Param("uuid")
+
+	s.e.Logger.Info("UUID: " + uuid)
 
 	// Send the config update to DigitalOcean
 	err := s.updateConfig(context.Background(), uuid)
