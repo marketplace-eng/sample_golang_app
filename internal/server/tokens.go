@@ -23,8 +23,8 @@ type Token struct {
 	// acquire a new access_token.
 	ExpiresIn int64 `json:"expires_in"`
 
-	// Time (in seconds since the epoch) this token will expire
-	ExpiresAt int64
+	// Time this token will expire
+	ExpiresAt time.Time
 
 	// The token type is used in the Authorization header of requests to the DigitalOcean API
 	TokenType string `json:"token_type"`
@@ -121,7 +121,7 @@ func (s *server) getAccessToken(ctx context.Context, uuid string) (string, error
 	}
 
 	// if token is expired, send refresh token in
-	if token.ExpiresAt < time.Now().Unix() {
+	if token.ExpiresAt.Before(time.Now()) {
 		token, err = s.refreshToken(ctx, token, uuid)
 		if err != nil {
 			return "", err
@@ -135,7 +135,7 @@ func (s *server) getAccessToken(ctx context.Context, uuid string) (string, error
 // Get tokens for a given account
 func (s *server) readTokens(ctx context.Context, uuid string) (*Token, error) {
 	token := Token{}
-	err := s.db.QueryRow(ctx, GetTokenSQL, uuid).Scan(&(token.AccessToken), &(token.RefreshToken), token.ExpiresAt)
+	err := s.db.QueryRow(ctx, GetTokenSQL, uuid).Scan(&(token.AccessToken), &(token.RefreshToken), &(token.ExpiresAt))
 	if err != nil {
 		s.e.Logger.Error("Unable to fetch tokens: " + err.Error())
 		return nil, err
