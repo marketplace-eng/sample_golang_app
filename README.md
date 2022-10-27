@@ -12,6 +12,8 @@ To start the server locally, simply use `make run`. It will then be available on
 
 This is intended to be a starting point for anyone looking to write a DigitalOcean SaaS Add-on. It contains endpoints for all calls DigitalOcean will make to a SaaS Add-on, as well as a couple of endpoints intended for use by a front-end to call back to DigitalOcean for configuration changes. If you want to use this, you will likely find the files under `/internal/server` to be the most helpful.
 
+If you want to run this as it is, consider using DigitalOcean's [App Platform](https://www.digitalocean.com/go/app-platform?utm_campaign=amer_brand_kw_en_cpc&utm_adgroup=digitalocean_app_platform_exact&_keyword=digital%20ocean%20app%20platform&_device=c&_adposition=&utm_content=conversion&utm_medium=cpc&utm_source=google&gclid=CjwKCAjw2OiaBhBSEiwAh2ZSP4ZmQPsVuzTJh-AZj-RpancsW5YvXbjAitPG_FTHgpmymtvUro7j7RoCiwoQAvD_BwE).
+
 ## Database Tables
 
 This app assumes a database exists containing three tables: Accounts, Activiites, and Tokens. Accounts represent the user accounts on your system, also referred to as Resources. Activiites represent an audit log of actions taken - in this example, all Notifications sent to the Add-on are written here. Tokens represent oauth grants.
