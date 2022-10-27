@@ -70,8 +70,3 @@ CREATE TABLE "tokens" (
 ) WITH (oids = false);
 
 CREATE INDEX "tokens_resource_uuid" ON "tokens" USING btree ("resource_uuid");
-
-
-ALTER TABLE ONLY "activities" ADD CONSTRAINT "activities_account_id_fkey" FOREIGN KEY (account_id) REFERENCES accounts(id) NOT DEFERRABLE;
-
-ALTER TABLE ONLY "tokens" ADD CONSTRAINT "tokens_resource_uuid_fkey" FOREIGN KEY (resource_uuid) REFERENCES accounts(resource_uuid) NOT DEFERRABLE;
