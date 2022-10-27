@@ -40,12 +40,12 @@ CREATE SEQUENCE activities_id_seq INCREMENT 1 MINVALUE 1 MAXVALUE 2147483647 CAC
 CREATE TABLE "activities" (
     "id" integer DEFAULT nextval('activities_id_seq') NOT NULL,
     "account_id" integer NOT NULL,
-    "resource_uuid" uuid,
+    "resource_uuid" character varying NOT NULL,
     "type" character varying NOT NULL,
     "title" character varying NOT NULL,
     "body" character varying NOT NULL,
     "created_at" timestamptz DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    "modified_at" timestamptz NOT NULL,
+    "modified_at" timestamptz DEFAULT CURRENT_TIMESTAMP NOT NULL,
     CONSTRAINT "activities_pkey" PRIMARY KEY ("id")
 ) WITH (oids = false);
 

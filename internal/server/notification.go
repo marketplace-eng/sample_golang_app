@@ -25,8 +25,8 @@ type Notification interface {
 }
 
 type SuspensionNotification struct {
-	Type      string `json:"type" form:"type"`
-	CreatedAt int    `json:"created_at" form:"created_at"`
+	Type      string `json:"type"`
+	CreatedAt int    `json:"created_at"`
 	Payload   struct {
 		ResourceUUIDs []string `json:"resources_uuids"`
 	} `json:"payload"`
@@ -41,8 +41,8 @@ func (n *SuspensionNotification) GetPayload() string {
 }
 
 type ReactivatedNotification struct {
-	Type      string `json:"type" form:"type"`
-	CreatedAt int    `json:"created_at" form:"created_at"`
+	Type      string `json:"type"`
+	CreatedAt int    `json:"created_at"`
 	Payload   struct {
 		ResourceUUIDs []string `json:"resources_uuids"`
 	} `json:"payload"`
@@ -57,8 +57,8 @@ func (n *ReactivatedNotification) GetPayload() string {
 }
 
 type DeprovisioningFailedNotification struct {
-	Type      string `json:"type" form:"type"`
-	CreatedAt int    `json:"created_at" form:"created_at"`
+	Type      string `json:"type"`
+	CreatedAt int    `json:"created_at"`
 	Payload   struct {
 		ResourceUUIDs []string `json:"resources_uuids"`
 	} `json:"payload"`
@@ -73,8 +73,8 @@ func (n *DeprovisioningFailedNotification) GetPayload() string {
 }
 
 type UpdatedNotification struct {
-	Type      string `json:"type" form:"type"`
-	CreatedAt int    `json:"created_at" form:"created_at"`
+	Type      string `json:"type"`
+	CreatedAt int    `json:"created_at"`
 	Payload   struct {
 		Resource ResourceState `json:"resource"`
 		Plan     PlanState     `json:"plan"`
@@ -93,15 +93,23 @@ type ResourceState struct {
 	UUID      string `json:"uuid"`
 	Name      string `json:"name"`
 	State     string `json:"state"`
-	CreatedAt int    `json:"created_at"`
-	UpdatedAt int    `json:"updated_at"`
+	CreatedAt struct {
+		Seconds int `json:"seconds"`
+	} `json:"created_at"`
+	UpdatedAt struct {
+		Seconds int `json:"seconds"`
+	} `json:"updated_at"`
 }
 
 type PlanState struct {
 	DisplayName string `json:"display_name"`
 	Slug        string `json:"slug"`
-	CreatedAt   int    `json:"created_at"`
-	UpdatedAt   int    `json:"updated_at"`
+	CreatedAt   struct {
+		Seconds int `json:"seconds"`
+	} `json:"created_at"`
+	UpdatedAt struct {
+		Seconds int `json:"seconds"`
+	} `json:"updated_at"`
 }
 
 // Determine the type of a notification, and pass it to the relevant handler.
@@ -119,7 +127,9 @@ func (s *server) parseNotification(ctx context.Context, n Notification) []error 
 		errs = s.deprovisionFailedNotification(ctx, n.(*DeprovisioningFailedNotification))
 	case Updated:
 		err := s.updateNotification(ctx, n.(*UpdatedNotification))
-		errs = append(errs, err)
+		if err != nil {
+			errs = append(errs, err)
+		}
 	default:
 		errs = append(errs, errors.New("unrecognized notification type"))
 	}

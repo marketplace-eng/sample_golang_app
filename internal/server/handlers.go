@@ -1,8 +1,10 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -115,13 +117,21 @@ func (s *server) notificationHandler(c echo.Context) error {
 	s.e.Logger.Info("Got notification request")
 	s.e.Logger.Info(c.Request().Header)
 
-	// req := &Notification{}
-	var req interface{}
-	err := c.Bind(&req)
+	// Store body data to refill later
+	bodyBytes, err := ioutil.ReadAll(c.Request().Body)
+	c.Request().Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
 	if err != nil {
 		return c.String(http.StatusBadRequest, "malformed request: "+err.Error())
 	}
 
+	// Parse request to get Notification type
+	var req interface{}
+	err = c.Bind(&req)
+	if err != nil {
+		return c.String(http.StatusBadRequest, "malformed request: "+err.Error())
+	}
+
+	// Use type of notification to determine structure of data
 	m := req.(map[string]interface{})
 	t := m["type"].(string)
 	var n Notification
@@ -144,6 +154,8 @@ func (s *server) notificationHandler(c echo.Context) error {
 		return c.JSON(http.StatusUnprocessableEntity, resp)
 	}
 
+	// Refill request body so we can bind it again
+	c.Request().Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
 	err = c.Bind(n)
 	if err != nil {
 		s.e.Logger.Info("Error binding notification: " + err.Error())
@@ -165,7 +177,7 @@ func (s *server) notificationHandler(c echo.Context) error {
 		// Return a 422 with message if errors occur
 		return c.JSON(http.StatusUnprocessableEntity, resp)
 	}
-	// // Return a successful response
+	// Return a successful response
 	return c.NoContent(http.StatusOK)
 }
 
