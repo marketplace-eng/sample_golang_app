@@ -134,13 +134,13 @@ func (s *server) getAccessToken(ctx context.Context, uuid string) (string, error
 
 // Get tokens for a given account
 func (s *server) readTokens(ctx context.Context, uuid string) (*Token, error) {
-	token := &Token{}
-	err := s.db.QueryRow(ctx, GetTokenSQL, uuid).Scan(token.AccessToken, token.RefreshToken, token.ExpiresAt)
+	token := Token{}
+	err := s.db.QueryRow(ctx, GetTokenSQL, uuid).Scan(&(token.AccessToken), &(token.RefreshToken), token.ExpiresAt)
 	if err != nil {
 		s.e.Logger.Error("Unable to fetch tokens: " + err.Error())
 		return nil, err
 	}
-	return token, nil
+	return &token, nil
 }
 
 // Trade a refresh token for a new access token, and get a new refresh token. Save both.
